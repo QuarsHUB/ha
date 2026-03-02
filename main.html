@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ОТМАЗКАТОР 3000</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+background:#0c0d12;
+color:#eaeaea;
+font-family:system-ui;
+min-height:100vh;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:60px 20px;
+}
+
+h1{
+font-size:42px;
+font-weight:800;
+margin-bottom:8px;
+letter-spacing:2px;
+}
+
+.subtitle{color:#666;margin-bottom:35px}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+gap:10px;
+max-width:800px;
+width:100%;
+margin-bottom:30px;
+}
+
+.mode{
+border:1px solid #1c1f27;
+background:#12141b;
+padding:14px;
+border-radius:6px;
+text-align:center;
+cursor:pointer;
+font-size:14px;
+color:#888;
+transition:0.2s;
+}
+
+.mode:hover{border-color:#555}
+.mode.active{
+border-color:#fff;
+color:#fff;
+background:#181b24;
+}
+
+textarea{
+width:100%;
+max-width:800px;
+height:110px;
+background:#12141b;
+border:1px solid #1c1f27;
+border-radius:6px;
+padding:14px;
+color:#fff;
+margin-bottom:20px;
+resize:none;
+}
+
+button{
+width:100%;
+max-width:800px;
+padding:16px;
+border:none;
+background:#fff;
+color:#000;
+font-weight:800;
+border-radius:6px;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+button:disabled{
+background:#333;
+color:#777;
+cursor:not-allowed;
+}
+
+.result{
+max-width:800px;
+width:100%;
+border:1px solid #1c1f27;
+background:#12141b;
+padding:25px;
+border-radius:6px;
+min-height:120px;
+text-align:center;
+font-size:18px;
+line-height:1.6;
+color:#aaa;
+}
+
+.copy{
+margin-top:10px;
+background:#222;
+color:#fff;
+}
+
+.spinner{
+width:24px;
+height:24px;
+border:3px solid #222;
+border-top:3px solid #fff;
+border-radius:50%;
+animation:spin .7s linear infinite;
+margin:auto;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<h1>ОТМАЗКАТОР 3000</h1>
+<div class="subtitle">строгий режим абсурда</div>
+
+<div class="grid" id="modes"></div>
+
+<textarea id="inputText" placeholder="Опиши ситуацию (если не рандом)..."></textarea>
+
+<button id="generateBtn" disabled>СГЕНЕРИРОВАТЬ</button>
+<button id="copyBtn" class="copy" style="display:none;">СКОПИРОВАТЬ</button>
+
+<div class="result" id="result">Выбери режим</div>
+
+<script>
+
+const API_KEY = "mQ0CdL1z29dH7lKn0HRbBftPZiVo4jF8";
+
+const MODES = {
+normal:"Убедительная отмазка.",
+absurd:"Максимально безумная и абсурдная отмазка.",
+serious:"Строгая правдоподобная отмазка.",
+dramatic:"Драматичная трагическая отмазка.",
+sci:"Отмазка с элементами квантовой физики.",
+cosmos:"Отмазка связанная с космосом.",
+animals:"Отмазка с участием животных.",
+tech:"Отмазка с участием технологий.",
+retro:"Отмазка из 90-х.",
+random:"Полностью случайная отмазка на любую тему."
+};
+
+let selected=null;
+
+const modesContainer=document.getElementById("modes");
+
+Object.keys(MODES).forEach(key=>{
+const div=document.createElement("div");
+div.className="mode";
+div.textContent=key.toUpperCase();
+div.onclick=()=>{
+document.querySelectorAll(".mode").forEach(m=>m.classList.remove("active"));
+div.classList.add("active");
+selected=key;
+updateBtn();
+};
+modesContainer.appendChild(div);
+});
+
+document.getElementById("inputText").oninput=updateBtn;
+
+function updateBtn(){
+const text=document.getElementById("inputText").value.trim();
+document.getElementById("generateBtn").disabled=!(selected&&(text||selected==="random"));
+}
+
+document.getElementById("generateBtn").onclick=async()=>{
+
+const text=document.getElementById("inputText").value.trim();
+const result=document.getElementById("result");
+const copyBtn=document.getElementById("copyBtn");
+
+result.innerHTML='<div class="spinner"></div>';
+copyBtn.style.display="none";
+
+try{
+
+const response=await fetch("https://api.mistral.ai/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+API_KEY
+},
+body:JSON.stringify({
+model:"mistral-large-latest",
+messages:[
+{role:"system",content:"Ты — ОТМАЗКАТОР 3000. Генерируй только отмазки. 1-3 предложения. Только русский язык."},
+{role:"user",content:MODES[selected]+(selected==="random"?"":" Ситуация: "+text)}
+],
+temperature:1.2,
+max_tokens:200
+})
+});
+
+const data=await response.json();
+
+if(!response.ok){
+throw new Error(data.message||"Ошибка API");
+}
+
+const finalText=data.choices[0].message.content.trim();
+result.innerText=finalText;
+
+copyBtn.style.display="block";
+copyBtn.onclick=()=>navigator.clipboard.writeText(finalText);
+
+}catch(e){
+result.innerText="Ошибка: "+e.message;
+}
+
+};
+
+</script>
+</body>
+</html>
